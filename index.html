@@ -3,29 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Railway ALERT - 商談用マルチデモ</title>
+    <title>Railway ALERT - 種別対応デモ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root { --brand-color: #f39700; } /* 初期は近鉄オレンジ */
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; transition: background-color 0.4s; overflow: hidden; }
+        :root { --brand-color: #f39700; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; transition: all 0.4s; overflow: hidden; }
         .condensed-font { font-family: 'Archivo Narrow', sans-serif; transform: scaleX(0.85); letter-spacing: -0.02em; display: flex; align-items: baseline; justify-content: center; }
         .zebra-pattern { background: linear-gradient(45deg, #FFD700 25%, #000 25%, #000 50%, #FFD700 50%, #FFD700 75%, #000 75%, #000); background-size: 40px 40px; }
-        .brand-bg { background-color: var(--brand-color); transition: background-color 0.4s; }
-        .brand-text { color: var(--brand-color); transition: color 0.4s; }
+        
+        /* 種別カラーの定義 */
+        .type-limited-exp { color: #ed1c24; } /* 特急：赤 */
+        .type-express { color: #f39700; }     /* 急行：オレンジ */
+        .type-semi-exp { color: #448833; }    /* 準急：緑 */
+        .type-local { color: #333333; }       /* 普通：黒/グレー */
     </style>
 </head>
 <body class="bg-white text-black">
 
     <div id="app" class="h-screen flex flex-col relative pb-[80px]">
-        <div class="bg-gray-100 p-2 flex flex-wrap gap-2 text-xs border-b">
+        <div class="bg-gray-100 p-2 flex flex-wrap gap-2 text-[10px] border-b">
             <select id="brand-selector" onchange="changeBrand()" class="p-1 rounded border bg-white font-bold">
-                <option value="kintetsu">近畿日本鉄道 (近鉄)</option>
-                <option value="nishitetsu">西日本鉄道 (西鉄)</option>
+                <option value="kintetsu">近鉄</option>
+                <option value="nishitetsu">西鉄</option>
             </select>
-            <select id="station-selector" onchange="resetTimer()" class="p-1 rounded border bg-white">
-                </select>
+            <select id="station-selector" onchange="resetTimer()" class="p-1 rounded border bg-white font-bold"></select>
             <button onclick="toggleSpeed()" id="speed-btn" class="bg-black text-white px-2 py-1 rounded">10倍速OFF</button>
         </div>
 
@@ -33,20 +36,34 @@
 
         <div class="flex-grow flex flex-col items-center justify-center px-2 text-center">
             <h1 id="station-display" class="text-3xl font-black mb-1">---駅</h1>
-            <p id="warning-text" class="text-lg font-bold mb-2 tracking-[0.4em] hidden text-red-600">WARNING</p>
             
-            <div id="timer-display" class="condensed-font text-[100px] sm:text-[120px] leading-none font-bold brand-text">
+            <div id="train-type-label" class="text-2xl font-black italic tracking-tighter transition-all">
+                ---
+            </div>
+            
+            <p id="warning-text" class="text-lg font-bold mb-1 tracking-[0.4em] hidden text-red-600">WARNING</p>
+            
+            <div id="timer-display" class="condensed-font text-[100px] sm:text-[120px] leading-none font-bold transition-colors">
                 <span id="min">05</span><span class="mx-1 text-[40px]">分</span>
                 <span id="sec">00</span><span class="mx-1 text-[40px]">秒</span>
-                <span id="ms" class="text-[60px] ml-1">00</span>
+                <span id="ms" class="text-[50px] ml-1">00</span>
             </div>
 
-            <div id="station-label" class="mt-4 px-10 py-2 rounded-full text-lg font-bold brand-bg text-white shadow-lg">
+            <div id="station-label" class="mt-2 px-10 py-1.5 rounded-full text-md font-bold text-white shadow-lg transition-all" style="background-color: var(--brand-color);">
                 ---方面
             </div>
 
-            <div class="mt-6 text-sm font-bold opacity-60">
-                <p id="next-info">次便: --:-- / 次々便: --:--</p>
+            <div class="mt-6 flex flex-col gap-1 w-full max-w-[280px]">
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg border-l-4" id="next-border">
+                    <span class="text-xs font-bold text-gray-400">次便</span>
+                    <span id="next-type" class="font-black">---</span>
+                    <span id="next-time" class="font-bold">--:--</span>
+                </div>
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg border-l-4 border-gray-300 opacity-60">
+                    <span class="text-xs font-bold text-gray-400">次々便</span>
+                    <span id="sub-next-type" class="font-black">---</span>
+                    <span id="sub-next-time" class="font-bold">--:--</span>
+                </div>
             </div>
         </div>
 
@@ -54,33 +71,46 @@
     </div>
 
     <div id="ad-container" class="fixed bottom-0 left-0 w-full h-[80px] bg-white flex items-center p-3 border-t-2 border-gray-100 z-50">
-        <div class="w-14 h-14 brand-bg rounded-lg flex items-center justify-center text-white mr-3">
-            <i data-lucide="shopping-cart"></i>
+        <div id="ad-icon-bg" class="w-12 h-12 rounded-lg flex items-center justify-center text-white mr-3">
+            <i data-lucide="ticket"></i>
         </div>
         <div class="flex-grow">
-            <p class="text-[10px] font-bold brand-text" id="ad-label">沿線店舗特典</p>
-            <p class="text-sm font-bold leading-tight" id="ad-text">発車まであと3分！<br>駅売店でお茶が10%OFF</p>
+            <p class="text-[10px] font-bold" id="ad-label" style="color: var(--brand-color);">広告</p>
+            <p class="text-xs font-bold leading-tight" id="ad-text">特急券はスマホで予約！<br>駅窓口に並ばずスムーズに。</p>
         </div>
-        <button class="brand-bg text-white px-4 py-2 rounded-lg text-xs font-bold">クーポン</button>
+        <button class="text-white px-3 py-2 rounded-lg text-[10px] font-bold" id="ad-btn" style="background-color: var(--brand-color);">購入する</button>
     </div>
 
     <script>
+        const TYPE_STYLES = {
+            '特急': 'type-limited-exp',
+            '急行': 'type-express',
+            '準急': 'type-semi-exp',
+            '普通': 'type-local'
+        };
+
         const DATA = {
             kintetsu: {
-                name: "近畿日本鉄道", color: "#f39700",
+                name: "近鉄", color: "#f39700",
                 stations: [
-                    { name: "大阪難波", dir: "奈良・名古屋方面" },
-                    { name: "近鉄奈良", dir: "大阪難波・三宮方面" }
-                ],
-                ad: "駅ナカ「Time's Place」クーポン"
+                    { name: "大阪難波", dir: "奈良・名古屋方面", trains: [
+                        { type: "特急", time: "12:45", color: "#ed1c24" },
+                        { type: "急行", time: "13:00", color: "#f39700" }
+                    ]},
+                    { name: "近鉄名古屋", dir: "大阪難波方面", trains: [
+                        { type: "特急", time: "14:00", color: "#ed1c24" },
+                        { type: "普通", time: "14:15", color: "#333333" }
+                    ]}
+                ]
             },
             nishitetsu: {
-                name: "西日本鉄道", color: "#005595",
+                name: "西鉄", color: "#005595",
                 stations: [
-                    { name: "西鉄福岡(天神)", dir: "久留米・大牟田方面" },
-                    { name: "西鉄久留米", dir: "福岡(天神)方面" }
-                ],
-                ad: "にしてつストア限定クーポン"
+                    { name: "西鉄福岡(天神)", dir: "久留米・大牟田方面", trains: [
+                        { type: "特急", time: "15:30", color: "#ed1c24" },
+                        { type: "普通", time: "15:45", color: "#333333" }
+                    ]}
+                ]
             }
         };
 
@@ -91,11 +121,8 @@
             const brand = document.getElementById('brand-selector').value;
             const config = DATA[brand];
             document.documentElement.style.setProperty('--brand-color', config.color);
-            
             const stationSel = document.getElementById('station-selector');
             stationSel.innerHTML = config.stations.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-            
-            document.getElementById('ad-label').innerText = config.ad;
             resetTimer();
         }
 
@@ -107,6 +134,25 @@
             
             document.getElementById('station-display').innerText = stationName;
             document.getElementById('station-label').innerText = stationData.dir;
+            
+            // 種別反映
+            const nextTrain = stationData.trains[0];
+            const subNext = stationData.trains[1];
+            
+            const typeLabel = document.getElementById('train-type-label');
+            typeLabel.innerText = nextTrain.type;
+            typeLabel.className = "text-3xl font-black italic tracking-tighter " + TYPE_STYLES[nextTrain.type];
+            
+            document.getElementById('next-type').innerText = nextTrain.type;
+            document.getElementById('next-time').innerText = nextTrain.time;
+            document.getElementById('next-border').style.borderLeftColor = nextTrain.color;
+            
+            document.getElementById('sub-next-type').innerText = subNext.type;
+            document.getElementById('sub-next-time').innerText = subNext.time;
+
+            // ボタンとアイコン色の更新
+            document.getElementById('ad-btn').style.backgroundColor = DATA[brand].color;
+            document.getElementById('ad-icon-bg').style.backgroundColor = DATA[brand].color;
         }
 
         function toggleSpeed() {
@@ -131,21 +177,27 @@
             const topZ = document.getElementById('top-zebra');
             const botZ = document.getElementById('bottom-zebra');
             const warn = document.getElementById('warning-text');
-            const stationH1 = document.getElementById('station-display');
+            const timer = document.getElementById('timer-display');
 
             if (m < 1) {
                 body.className = "bg-black text-white";
                 topZ.style.opacity = "1"; botZ.style.opacity = "1";
-                warn.classList.remove('hidden'); stationH1.innerText = "警告";
+                warn.classList.remove('hidden');
+                timer.style.color = "white";
             } else if (m < 3) {
                 body.className = "bg-[#FFD700] text-black";
                 topZ.style.opacity = "1"; botZ.style.opacity = "1";
-                warn.classList.remove('hidden'); stationH1.innerText = "警告";
+                warn.classList.remove('hidden');
+                timer.style.color = "black";
             } else {
                 body.className = "bg-white text-black";
                 topZ.style.opacity = "0"; botZ.style.opacity = "0";
                 warn.classList.add('hidden');
-                stationH1.innerText = document.getElementById('station-selector').value;
+                // 通常時は種別カラーを反映
+                const brand = document.getElementById('brand-selector').value;
+                const stationName = document.getElementById('station-selector').value;
+                const nextTrain = DATA[brand].stations.find(s => s.name === stationName).trains[0];
+                timer.style.color = nextTrain.color;
             }
         }
 
