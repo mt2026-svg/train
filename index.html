@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway ALERT - 商談用マルチデモ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --brand-color: #f39700; } /* 初期は近鉄オレンジ */
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; transition: background-color 0.4s; overflow: hidden; }
+        .condensed-font { font-family: 'Archivo Narrow', sans-serif; transform: scaleX(0.85); letter-spacing: -0.02em; display: flex; align-items: baseline; justify-content: center; }
+        .zebra-pattern { background: linear-gradient(45deg, #FFD700 25%, #000 25%, #000 50%, #FFD700 50%, #FFD700 75%, #000 75%, #000); background-size: 40px 40px; }
+        .brand-bg { background-color: var(--brand-color); transition: background-color 0.4s; }
+        .brand-text { color: var(--brand-color); transition: color 0.4s; }
+    </style>
+</head>
+<body class="bg-white text-black">
+
+    <div id="app" class="h-screen flex flex-col relative pb-[80px]">
+        <div class="bg-gray-100 p-2 flex flex-wrap gap-2 text-xs border-b">
+            <select id="brand-selector" onchange="changeBrand()" class="p-1 rounded border bg-white font-bold">
+                <option value="kintetsu">近畿日本鉄道 (近鉄)</option>
+                <option value="nishitetsu">西日本鉄道 (西鉄)</option>
+            </select>
+            <select id="station-selector" onchange="resetTimer()" class="p-1 rounded border bg-white">
+                </select>
+            <button onclick="toggleSpeed()" id="speed-btn" class="bg-black text-white px-2 py-1 rounded">10倍速OFF</button>
+        </div>
+
+        <div id="top-zebra" class="h-6 w-full zebra-pattern opacity-0 transition-opacity duration-500"></div>
+
+        <div class="flex-grow flex flex-col items-center justify-center px-2 text-center">
+            <h1 id="station-display" class="text-3xl font-black mb-1">---駅</h1>
+            <p id="warning-text" class="text-lg font-bold mb-2 tracking-[0.4em] hidden text-red-600">WARNING</p>
+            
+            <div id="timer-display" class="condensed-font text-[100px] sm:text-[120px] leading-none font-bold brand-text">
+                <span id="min">05</span><span class="mx-1 text-[40px]">分</span>
+                <span id="sec">00</span><span class="mx-1 text-[40px]">秒</span>
+                <span id="ms" class="text-[60px] ml-1">00</span>
+            </div>
+
+            <div id="station-label" class="mt-4 px-10 py-2 rounded-full text-lg font-bold brand-bg text-white shadow-lg">
+                ---方面
+            </div>
+
+            <div class="mt-6 text-sm font-bold opacity-60">
+                <p id="next-info">次便: --:-- / 次々便: --:--</p>
+            </div>
+        </div>
+
+        <div id="bottom-zebra" class="h-8 w-full zebra-pattern opacity-0 transition-opacity duration-500"></div>
+    </div>
+
+    <div id="ad-container" class="fixed bottom-0 left-0 w-full h-[80px] bg-white flex items-center p-3 border-t-2 border-gray-100 z-50">
+        <div class="w-14 h-14 brand-bg rounded-lg flex items-center justify-center text-white mr-3">
+            <i data-lucide="shopping-cart"></i>
+        </div>
+        <div class="flex-grow">
+            <p class="text-[10px] font-bold brand-text" id="ad-label">沿線店舗特典</p>
+            <p class="text-sm font-bold leading-tight" id="ad-text">発車まであと3分！<br>駅売店でお茶が10%OFF</p>
+        </div>
+        <button class="brand-bg text-white px-4 py-2 rounded-lg text-xs font-bold">クーポン</button>
+    </div>
+
+    <script>
+        const DATA = {
+            kintetsu: {
+                name: "近畿日本鉄道", color: "#f39700",
+                stations: [
+                    { name: "大阪難波", dir: "奈良・名古屋方面" },
+                    { name: "近鉄奈良", dir: "大阪難波・三宮方面" }
+                ],
+                ad: "駅ナカ「Time's Place」クーポン"
+            },
+            nishitetsu: {
+                name: "西日本鉄道", color: "#005595",
+                stations: [
+                    { name: "西鉄福岡(天神)", dir: "久留米・大牟田方面" },
+                    { name: "西鉄久留米", dir: "福岡(天神)方面" }
+                ],
+                ad: "にしてつストア限定クーポン"
+            }
+        };
+
+        let timeLeft = 300000;
+        let isHighSpeed = false;
+
+        function changeBrand() {
+            const brand = document.getElementById('brand-selector').value;
+            const config = DATA[brand];
+            document.documentElement.style.setProperty('--brand-color', config.color);
+            
+            const stationSel = document.getElementById('station-selector');
+            stationSel.innerHTML = config.stations.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            
+            document.getElementById('ad-label').innerText = config.ad;
+            resetTimer();
+        }
+
+        function resetTimer() {
+            timeLeft = 300000;
+            const brand = document.getElementById('brand-selector').value;
+            const stationName = document.getElementById('station-selector').value;
+            const stationData = DATA[brand].stations.find(s => s.name === stationName);
+            
+            document.getElementById('station-display').innerText = stationName;
+            document.getElementById('station-label').innerText = stationData.dir;
+        }
+
+        function toggleSpeed() {
+            isHighSpeed = !isHighSpeed;
+            document.getElementById('speed-btn').innerText = isHighSpeed ? "10倍速ON" : "10倍速OFF";
+            document.getElementById('speed-btn').classList.toggle('bg-red-600');
+        }
+
+        function update() {
+            timeLeft -= isHighSpeed ? 100 : 10;
+            if(timeLeft < 0) timeLeft = 300000;
+            
+            const m = Math.floor(timeLeft / 60000);
+            const s = Math.floor((timeLeft % 60000) / 1000);
+            const ms = Math.floor((timeLeft % 1000) / 10);
+
+            document.getElementById('min').innerText = String(m).padStart(2, '0');
+            document.getElementById('sec').innerText = String(s).padStart(2, '0');
+            document.getElementById('ms').innerText = String(ms).padStart(2, '0');
+
+            const body = document.body;
+            const topZ = document.getElementById('top-zebra');
+            const botZ = document.getElementById('bottom-zebra');
+            const warn = document.getElementById('warning-text');
+            const stationH1 = document.getElementById('station-display');
+
+            if (m < 1) {
+                body.className = "bg-black text-white";
+                topZ.style.opacity = "1"; botZ.style.opacity = "1";
+                warn.classList.remove('hidden'); stationH1.innerText = "警告";
+            } else if (m < 3) {
+                body.className = "bg-[#FFD700] text-black";
+                topZ.style.opacity = "1"; botZ.style.opacity = "1";
+                warn.classList.remove('hidden'); stationH1.innerText = "警告";
+            } else {
+                body.className = "bg-white text-black";
+                topZ.style.opacity = "0"; botZ.style.opacity = "0";
+                warn.classList.add('hidden');
+                stationH1.innerText = document.getElementById('station-selector').value;
+            }
+        }
+
+        setInterval(update, 10);
+        changeBrand();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
